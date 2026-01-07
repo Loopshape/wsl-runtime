@@ -1,0 +1,4 @@
+#!/bin/bash
+
+# Example: Prometheus-format metrics
+curl -s -u admin:password http://NEXUS_HOST:NEXUS_PORT/service/metrics/prometheus

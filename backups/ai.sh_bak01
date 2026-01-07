@@ -1,0 +1,417 @@
+#!/bin/bash
+
+# ============================================================================
+# WSL Runtime AI Orchestration System
+# File: ~/_/ai/ai.sh
+# Author: Loopshape Enhanced System
+# Description: Parallel AI reasoning with 2π/8 agent architecture
+# Environment: WSL1 Debian on Windows 10 | 8GB RAM | 500GB HDD
+# ============================================================================
+
+set -euo pipefail
+IFS=$'\n\t'
+
+# Configuration
+readonly BASE_DIR="$HOME/.repository/wsl-runtime"
+readonly AI_DIR="$HOME/_/ai"
+readonly DB_FILE="$BASE_DIR/ai_memory.db"
+readonly LOG_FILE="$BASE_DIR/ai_system.log"
+readonly OLLAMA_HOST="http://localhost:11434"
+readonly OLLAMA_MODEL="slim"  # Change to your Ollama model
+
+# 2π/8 Agent Definitions
+declare -A AGENTS=(
+    [0]="Analyzer π/4"
+    [1]="Reasoner π/2" 
+    [2]="Synthesizer 3π/4"
+    [3]="Validator π"
+    [4]="Optimizer 5π/4"
+    [5]="Integrator 3π/2"
+    [6]="Innovator 7π/4"
+    [7]="Coordinator 2π"
+)
+
+# Color codes for output
+readonly RED='\033[0;31m'
+readonly GREEN='\033[0;32m'
+readonly YELLOW='\033[1;33m'
+readonly BLUE='\033[0;34m'
+readonly MAGENTA='\033[0;35m'
+readonly CYAN='\033[0;36m'
+readonly NC='\033[0m' # No Color
+
+# Initialize logging
+log_message() {
+    local level="$1"
+    local message="$2"
+    local timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    
+    case "$level" in
+        "INFO") echo -e "${GREEN}[INFO]${NC} $message" ;;
+        "WARN") echo -e "${YELLOW}[WARN]${NC} $message" ;;
+        "ERROR") echo -e "${RED}[ERROR]${NC} $message" ;;
+        "DEBUG") echo -e "${BLUE}[DEBUG]${NC} $message" ;;
+        *) echo "[$level] $message" ;;
+    esac
+    
+    echo "[$timestamp] [$level] $message" >> "$LOG_FILE"
+}
+
+# Initialize SQLite3 database
+init_database() {
+    if [[ ! -f "$DB_FILE" ]]; then
+        log_message "INFO" "Initializing SQLite3 database..."
+        
+        sqlite3 "$DB_FILE" <<EOF
+CREATE TABLE IF NOT EXISTS agent_memories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    agent_id INTEGER NOT NULL,
+    agent_name TEXT NOT NULL,
+    prompt TEXT NOT NULL,
+    response TEXT NOT NULL,
+    tokens_used INTEGER,
+    confidence REAL,
+    angle_position REAL,
+    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+    metadata JSON
+);
+
+CREATE TABLE IF NOT EXISTS memory_clusters (
+    cluster_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    description TEXT,
+    agent_pattern TEXT,
+    token_count INTEGER,
+    last_accessed DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS system_state (
+    key TEXT PRIMARY KEY,
+    value TEXT,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_agent_memories ON agent_memories(agent_id, timestamp);
+CREATE INDEX IF NOT EXISTS idx_memory_clusters ON memory_clusters(last_accessed);
+
+INSERT OR IGNORE INTO system_state (key, value) VALUES 
+    ('cycle_phase', '0'),
+    ('total_tokens', '0'),
+    ('active_agents', '0'),
+    ('system_version', '2.0.0');
+EOF
+        
+        log_message "INFO" "Database initialized at $DB_FILE"
+    fi
+}
+
+# Check Ollama status
+check_ollama() {
+    if curl -s "$OLLAMA_HOST/api/tags" > /dev/null 2>&1; then
+        log_message "INFO" "Ollama is running on $OLLAMA_HOST"
+        return 0
+    else
+        log_message "ERROR" "Ollama is not running. Please start Ollama first."
+        return 1
+    fi
+}
+
+# Calculate agent position in 2π cycle
+calculate_agent_position() {
+    local agent_id="$1"
+    local total_agents="${#AGENTS[@]}"
+    local position=$(echo "scale=4; 2 * 3.14159 * $agent_id / $total_agents" | bc)
+    echo "$position"
+}
+
+# Execute prompt through a specific agent
+execute_agent_prompt() {
+    local agent_id="$1"
+    local prompt="$2"
+    local agent_name="${AGENTS[$agent_id]}"
+    local position=$(calculate_agent_position "$agent_id")
+    
+    log_message "DEBUG" "Agent $agent_id ($agent_name) processing at position $position"
+    
+    # Prepare agent-specific context
+    local context=""
+    case "$agent_id" in
+        0) context="You are the Analyzer agent (π/4). Focus on breaking down problems into components." ;;
+        1) context="You are the Reasoner agent (π/2). Focus on logical deduction and inference." ;;
+        2) context="You are the Synthesizer agent (3π/4). Focus on combining ideas creatively." ;;
+        3) context="You are the Validator agent (π). Focus on checking accuracy and consistency." ;;
+        4) context="You are the Optimizer agent (5π/4). Focus on efficiency and improvement." ;;
+        5) context="You are the Integrator agent (3π/2). Focus on connecting disparate concepts." ;;
+        6) context="You are the Innovator agent (7π/4). Focus on novel solutions and approaches." ;;
+        7) context="You are the Coordinator agent (2π). Focus on orchestrating all other agents." ;;
+    esac
+    
+    # Retrieve relevant memories for this agent
+    local memories=$(sqlite3 "$DB_FILE" <<EOF
+SELECT response FROM agent_memories 
+WHERE agent_id = $agent_id 
+ORDER BY timestamp DESC 
+LIMIT 3;
+EOF
+    )
+    
+    # Construct enhanced prompt
+    local enhanced_prompt="Context: $context
+    
+Recent Memories:
+$memories
+
+Current Task:
+$prompt
+
+Provide your analysis from your specific agent perspective:"
+    
+    # Call Ollama API
+    local response=$(curl -s -X POST "$OLLAMA_HOST/api/generate" \
+        -H "Content-Type: application/json" \
+        -d "{
+            \"model\": \"$OLLAMA_MODEL\",
+            \"prompt\": \"$enhanced_prompt\",
+            \"stream\": false,
+            \"options\": {
+                \"temperature\": 0.$((70 + agent_id * 3)),
+                \"top_p\": 0.$((85 + agent_id))
+            }
+        }")
+    
+    # Extract response text
+    local response_text=$(echo "$response" | jq -r '.response // .')
+    local tokens_used=$(echo "$response" | jq -r '.total_duration // 0')
+    
+    # Calculate confidence based on position and response length
+    local confidence=$(echo "scale=2; 0.7 + 0.3 * (1 - $agent_id / ${#AGENTS[@]})" | bc)
+    
+    # Store in database
+    sqlite3 "$DB_FILE" <<EOF
+INSERT INTO agent_memories (agent_id, agent_name, prompt, response, tokens_used, confidence, angle_position)
+VALUES ($agent_id, '$agent_name', '$prompt', '$response_text', $tokens_used, $confidence, $position);
+EOF
+    
+    # Update system state
+    sqlite3 "$DB_FILE" "UPDATE system_state SET value = CAST(value AS INTEGER) + 1 WHERE key = 'total_tokens';"
+    
+    echo "$response_text"
+}
+
+# Parallel execution of all agents
+parallel_reasoning() {
+    local prompt="$1"
+    local results=()
+    local pids=()
+    
+    log_message "INFO" "Starting parallel reasoning with ${#AGENTS[@]} agents"
+    
+    # Update active agents count
+    sqlite3 "$DB_FILE" "UPDATE system_state SET value = '${#AGENTS[@]}' WHERE key = 'active_agents';"
+    
+    # Execute each agent in parallel
+    for agent_id in "${!AGENTS[@]}"; do
+        (
+            local result=$(execute_agent_prompt "$agent_id" "$prompt")
+            echo "AGENT_${agent_id}_RESULT:$result" > "/tmp/agent_${agent_id}_$$.out"
+        ) &
+        pids+=($!)
+    done
+    
+    # Wait for all agents to complete
+    for pid in "${pids[@]}"; do
+        wait "$pid"
+    done
+    
+    # Collect results
+    for agent_id in "${!AGENTS[@]}"; do
+        if [[ -f "/tmp/agent_${agent_id}_$$.out" ]]; then
+            local result=$(grep "AGENT_${agent_id}_RESULT:" "/tmp/agent_${agent_id}_$$.out" | cut -d: -f2-)
+            results+=("$result")
+            rm "/tmp/agent_${agent_id}_$$.out"
+        fi
+    done
+    
+    # Update active agents count back to 0
+    sqlite3 "$DB_FILE" "UPDATE system_state SET value = '0' WHERE key = 'active_agents';"
+    
+    # Increment cycle phase
+    local current_phase=$(sqlite3 "$DB_FILE" "SELECT value FROM system_state WHERE key = 'cycle_phase';")
+    local new_phase=$(( (current_phase + 1) % ${#AGENTS[@]} ))
+    sqlite3 "$DB_FILE" "UPDATE system_state SET value = '$new_phase' WHERE key = 'cycle_phase';"
+    
+    # Create memory cluster
+    local cluster_desc=$(echo "$prompt" | cut -c1-50)
+    sqlite3 "$DB_FILE" <<EOF
+INSERT INTO memory_clusters (description, agent_pattern, token_count)
+VALUES ('$cluster_desc', '0-7', ${#AGENTS[@]} * 100);
+EOF
+    
+    log_message "INFO" "Parallel reasoning complete. Cycle phase: $new_phase"
+    
+    # Return JSON formatted results
+    echo "{"
+    echo "  \"prompt\": \"$prompt\","
+    echo "  \"cycle_phase\": $new_phase,"
+    echo "  \"agents\": ["
+    for i in "${!results[@]}"; do
+        echo "    {"
+        echo "      \"id\": $i,"
+        echo "      \"name\": \"${AGENTS[$i]}\","
+        echo "      \"response\": \"${results[$i]//\"/\\\"}\","
+        echo "      \"position\": $(calculate_agent_position $i),"
+        echo "      \"confidence\": $(echo "scale=2; 0.7 + 0.3 * (1 - $i / ${#AGENTS[@]})" | bc)"
+        if [[ $i -ne $(( ${#results[@]} - 1 )) ]]; then
+            echo "    },"
+        else
+            echo "    }"
+        fi
+    done
+    echo "  ]"
+    echo "}"
+}
+
+# Memory recall function
+recall_memory() {
+    local query="$1"
+    local limit="${2:-10}"
+    
+    log_message "INFO" "Searching memory for: $query"
+    
+    sqlite3 -json "$DB_FILE" <<EOF
+SELECT 
+    agent_name,
+    substr(prompt, 1, 100) as prompt_preview,
+    substr(response, 1, 200) as response_preview,
+    confidence,
+    timestamp,
+    angle_position
+FROM agent_memories 
+WHERE prompt LIKE '%$query%' OR response LIKE '%$query%'
+ORDER BY timestamp DESC
+LIMIT $limit;
+EOF
+}
+
+# Get system statistics
+get_system_stats() {
+    sqlite3 -json "$DB_FILE" <<EOF
+SELECT 
+    (SELECT value FROM system_state WHERE key = 'cycle_phase') as cycle_phase,
+    (SELECT value FROM system_state WHERE key = 'total_tokens') as total_tokens,
+    (SELECT value FROM system_state WHERE key = 'active_agents') as active_agents,
+    (SELECT COUNT(*) FROM agent_memories) as total_memories,
+    (SELECT COUNT(DISTINCT agent_id) FROM agent_memories) as unique_agents,
+    (SELECT SUM(tokens_used) FROM agent_memories) as tokens_used_total;
+EOF
+}
+
+# Cleanup old memories
+cleanup_memories() {
+    local days_to_keep="${1:-30}"
+    
+    log_message "INFO" "Cleaning up memories older than $days_to_keep days"
+    
+    local deleted=$(sqlite3 "$DB_FILE" <<EOF
+DELETE FROM agent_memories 
+WHERE date(timestamp) < date('now', '-$days_to_keep days');
+SELECT changes();
+EOF
+    )
+    
+    log_message "INFO" "Deleted $deleted old memories"
+}
+
+# Export database for backup
+export_database() {
+    local backup_dir="$BASE_DIR/backups"
+    local timestamp=$(date '+%Y%m%d_%H%M%S')
+    local backup_file="$backup_dir/ai_memory_$timestamp.db"
+    
+    mkdir -p "$backup_dir"
+    cp "$DB_FILE" "$backup_file"
+    
+    # Compress backup
+    gzip "$backup_file"
+    
+    log_message "INFO" "Database exported to ${backup_file}.gz"
+    
+    # Keep only last 5 backups
+    ls -t "$backup_dir"/*.gz | tail -n +6 | xargs -r rm
+}
+
+# Main execution flow
+main() {
+    # Parse command line arguments
+    local command="${1:-help}"
+    
+    # Initialize system
+    init_database
+    
+    case "$command" in
+        "reason")
+            if [[ $# -lt 2 ]]; then
+                echo "Usage: $0 reason \"<prompt>\""
+                exit 1
+            fi
+            check_ollama
+            parallel_reasoning "${2}"
+            ;;
+        
+        "recall")
+            if [[ $# -lt 2 ]]; then
+                echo "Usage: $0 recall \"<query>\" [limit]"
+                exit 1
+            fi
+            recall_memory "${2}" "${3:-10}"
+            ;;
+        
+        "stats")
+            get_system_stats
+            ;;
+        
+        "cleanup")
+            cleanup_memories "${2:-30}"
+            ;;
+        
+        "export")
+            export_database
+            ;;
+        
+        "status")
+            check_ollama
+            echo "System Status:"
+            echo "  Database: $DB_FILE"
+            echo "  Log file: $LOG_FILE"
+            echo "  Ollama: $(check_ollama && echo 'Running' || echo 'Stopped')"
+            get_system_stats | jq .
+            ;;
+        
+        "agents")
+            echo "2π/8 Agent System:"
+            for id in "${!AGENTS[@]}"; do
+                local pos=$(calculate_agent_position "$id")
+                printf "  Agent %d: %-20s Position: %.4fπ\n" "$id" "${AGENTS[$id]}" "$(echo "$pos / 3.14159" | bc -l)"
+            done
+            ;;
+        
+        "help"|*)
+            echo "WSL Runtime AI Orchestration System"
+            echo "====================================="
+            echo "Commands:"
+            echo "  reason \"<prompt>\"    - Execute parallel reasoning with all agents"
+            echo "  recall \"<query>\"     - Search memory database"
+            echo "  stats                - Get system statistics"
+            echo "  cleanup [days]       - Cleanup old memories"
+            echo "  export               - Export database backup"
+            echo "  status               - Check system status"
+            echo "  agents               - List all agents"
+            echo "  help                 - Show this help"
+            ;;
+    esac
+}
+
+# Trap signals for cleanup
+trap 'log_message "WARN" "Script interrupted"; exit 1' INT TERM
+
+# Run main function
+main "$@"

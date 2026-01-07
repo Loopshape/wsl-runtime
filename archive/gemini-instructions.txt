@@ -1,0 +1,35 @@
+Generate a complete Node.js + PM2 offline runlevel setup to emulate systemd on WSL1 Debian. 
+
+Requirements:
+
+1. Create the following structure under /home/loop/ai-runlevel/:
+   - ai-runlevel.mjs          # Node ES module controlling boot services
+   - ecosystem.config.cjs     # PM2 configuration for all services
+   - logs/                    # log files
+   - sockets/                 # UNIX socket placeholders
+
+2. ai-runlevel.mjs:
+   - Implement service orchestration, dependency graph, readiness checks, health latches
+   - Ensure Ollama agent startup via UNIX socket
+   - Include auto-retry loop for offline scenarios
+   - Include inline comments explaining purpose of sections
+
+3. ecosystem.config.cjs:
+   - PM2 config for ai-runlevel.mjs and other necessary daemons
+   - Autostart on boot, log paths, restart policies
+   - Include inline comments explaining purpose of each field
+
+4. Ensure file and directory creation operations:
+   - Create logs/ and sockets/ if missing
+   - Make ai-runlevel.mjs executable
+   - Validate existence of all scripts and create defaults if absent
+
+5. Optional systemd unit file to start PM2 on boot
+   - Ensure deterministic service startup
+
+6. Output:
+   - Return full directory structure
+   - Include default content templates for ai-runlevel.mjs and ecosystem.config.cjs
+   - Include comments explaining each file and folder purpose
+
+Goal: Fully automate file creation and configuration for a WSL1 Debian offline Node + PM2 boot system, emulating systemd runlevel behavior.

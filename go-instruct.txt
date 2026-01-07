@@ -1,0 +1,104 @@
+**Gemini‑CLI Prompt**  
+
+```
+You are an expert full‑stack developer.  Create the complete source code for a modern, accessible, neon‑styled single‑page web app called **WEBTRACON** that:
+
+1️⃣ **HTML (public/index.html)**
+   • Add a proper `<!DOCTYPE html>` and a `<main>` landmark.
+   • Include a screen‑reader only `<label>` for the AI prompt input.
+   • Set `type="button"` on the “RESOLVE” button and give it an `aria‑label` if needed.
+   • Add a `<meta name="description">` and Open‑Graph tags for SEO.
+   • Give the console output `<div id="console-output" aria-live="polite" aria-atomic="false">`.
+   • Remove all inline scripts; the page will load `/js/app.js`.
+   • Keep the existing neon markup (header, teaser, cards, footer).
+
+2️⃣ **CSS (public/css/style.css)**
+   • Move the massive `<style>` block into this file.
+   • Define a `--glass-alpha` variable and replace the hard‑coded glass opacity with `rgba(255,255,255,var(--glass-alpha))`.
+   • Add a `prefers-reduced-motion` media query that disables all keyframe animations.
+   • Add focus‑visible outlines for keyboard navigation: `outline: 2px solid var(--neon-yellow)`.
+   • Add a `.loading` style for the button (opacity 0.7, cursor wait).
+   • Add a `.sr-only` utility class for the hidden label.
+   • Keep the existing neon colour variables and animations.
+
+3️⃣ **Front‑end JavaScript (js/app.js)**
+   • Create an `EventSource` to `/events` and handle three message types:
+        – `TOKEN_INJECTION` → show `[agent] token` in the console.
+        – `HEALTH` → display Nexus health status (`✅ OK` / `❌ PROBLEM`).
+        – any other → JSON‑stringified dump.
+   • Implement a `submitPrompt()` that:
+        * Reads the value of `#ai-prompt`.
+        * Sends a `POST /api/prompt` with `{prompt: "..."}`
+        * Shows a loading state on the button (`.loading` class, text “PROCESSING…”).
+        * Clears the input after a successful request.
+        * Displays errors in the console with red neon text.
+   • Bind the button click and the **Enter** key to `submitPrompt()`.
+   • Add click handlers on each `.service-card` that pre‑fill the prompt with `[MODE] ` based on `data-mode`.
+   • On page load call `GET /api/nexus/health`, then fire a synthetic SSE `HEALTH` event so the console shows the result.
+   • Provide graceful cleanup: close the `EventSource` on `beforeunload`.
+
+4️⃣ **Back‑end (Node / Express, server folder)**
+   *File structure*  
+   ```
+   server/
+     api.mjs          ← Ollama wrapper (generate, chat, checkHealth) + Nexus health helpers
+     server.mjs       ← Express app exposing HTTP endpoints and SSE
+   ```
+   *api.mjs*  
+   - Keep the existing `generate(prompt, model, options)` implementation **but extend it**: when `options.stream === true` return an **async iterator** that yields each streaming JSON line from Ollama (`{response, done}`).
+   - Add the two Nexus helper functions (taken from the earlier answer):
+        ```js
+        export async function checkNexusHealth() { … }   // GET /service/rest/v1/status/check
+        export async function isNexusFullyHealthy() { … } // true only if every check.healthy === true
+        ```
+   *server.mjs*  
+   - Use `express()` with `cors()` and `express.json()`.
+   - **SSE endpoint** `GET /events` keeps an array of client responses and writes `data: {...}\n\n` for each broadcast.
+   - **Broadcast helper** `function broadcast(obj) { … }`.
+   - **POST /api/prompt**:
+        ```js
+        const {prompt} = req.body;
+        const stream = await generate(prompt, undefined, {stream:true});
+        for await (const chunk of stream) {
+            if (chunk.done) break;
+            broadcast({type:'TOKEN_INJECTION', agent:'Ollama', response:chunk.response});
+        }
+        broadcast({type:'TOKEN_INJECTION', agent:'Ollama', response:'[DONE]'});
+        res.json({status:'queued'});
+        ```
+   - **GET /api/nexus/health** returns `{healthy: bool, checks: object}` using the helpers above.
+   - Listen on `process.env.PORT || 3000`; log startup message.
+
+5️⃣ **Security / Production Checklist (include as comments in README)**
+   - Restrict CORS to the production origin.
+   - Add Content‑Security‑Policy header.
+   - Serve everything over HTTPS (reverse‑proxy recommended).
+   - Rate‑limit `/api/prompt` (e.g., 10 req/min per IP).
+   - Optional JWT or API‑key auth for the prompt endpoint.
+   - Load all secrets (`OLLAMA_HOST`, `OLLAMA_PORT`, `NEXUS_USER`, `NEXUS_PASS`, `OLLAMA_USE_SOCKET`, `OLLAMA_SOCKET_PATH`) from a `.env` file.
+   - Use a structured logger (pino or winston) and rotate logs.
+   - Graceful shutdown on `SIGTERM`/`SIGINT` (close SSE clients, stop server).
+   - Add `prefers-reduced-motion` support and focus‑visible styles for accessibility.
+
+6️⃣ **Folder Layout**
+   ```
+   project-root/
+   ├─ public/
+   │   ├─ index.html
+   │   ├─ assets/                 ← compiled bundle (index‑B5Qt9EMX.js)
+   │   └─ css/
+   │        └─ style.css
+   ├─ js/
+   │      └─ app.js
+   ├─ server/
+   │      ├─ api.mjs
+   │      └─ server.mjs
+   ├─ .env
+   ├─ package.json
+   └─ README.md
+   ```
+
+**Deliverable**: Provide the full contents of each file (`public/index.html`, `public/css/style.css`, `js/app.js`, `server/api.mjs`, `server/server.mjs`) exactly as described, plus a brief `README.md` with the security checklist and instructions to run the project (`npm i`, `node server/server.mjs`, then open `public/index.html` via a static server). Ensure the code is ready to run under Node 18+ with the `--experimental-modules` flag or with `"type":"module"` in `package.json`.  
+
+--- End of Prompt ---
+```

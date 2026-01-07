@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WEBTRACON :: Your Resource for a global Resolution</title>
+    <meta name="author" content="Aris Arjuna Noorsanto" />
+    <meta name="email" content="exe.opecode@gmail.com" />
+    <link rel="stylesheet" href="index.css" />
+</head>
+<body>
+
+    <section id="viewport">
+        
+        <header id="header">
+            <h1 class="logo">WEBTRACON</h1>
+            <p class="tagline">Your Resource for a global Resolution</p>
+        </header>
+
+        <section id="teaser">
+            <div class="input-wrapper">
+                <span class="search-icon">⦿</span>
+                <input type="text" id="ai-prompt" aria-label="AI resolution prompt" placeholder="Ask the AI-Agent to create, solve, or deploy..." type="text" id="ai-prompt" placeholder="Ask the AI-Agent to create, solve, or deploy..." autocomplete="off">
+                <button class="action-btn" onclick="triggerAction()">RESOLVE</button>
+            </div>
+        </section>
+
+        <section id="content">
+            <!-- R G B Y W Distribution -->
+            <article class="service-card card-texting" data-mode="text">
+                <span class="service-icon neon-text-b">T</span>
+                <h3 class="service-title">Texting</h3>
+            </article>
+
+            <article class="service-card card-imaging" data-mode="image">
+                <span class="service-icon neon-text-r">I</span>
+                <h3 class="service-title">Imaging</h3>
+            </article>
+
+            <article class="service-card card-animating" data-mode="video">
+                <span class="service-icon neon-text-y">A</span>
+                <h3 class="service-title">Animating</h3>
+            </article>
+
+            <article class="service-card card-workflow" data-mode="human">
+                <span class="service-icon neon-text-g">W</span>
+                <h3 class="service-title">Workflows</h3>
+            </article>
+
+            <article class="service-card card-agent" data-mode="agi">
+                <span class="service-icon neon-text-w">∞</span>
+                <h3 class="service-title">AI-Agent</h3>
+            </article>
+
+            <article class="service-card card-tech" data-mode="hash">
+                <span class="service-icon neon-text-b">L</span>
+                <h3 class="service-title">Logical Tech</h3>
+            </article>
+
+            <article class="service-card card-scripting" data-mode="code">
+                <span class="service-icon neon-text-r">S</span>
+                <h3 class="service-title">Scripting</h3>
+            </article>
+
+            <article class="service-card card-posting" data-mode="network">
+                <span class="service-icon neon-text-y">P</span>
+                <h3 class="service-title">Posting</h3>
+            </article>
+        </section>
+
+        <!-- Live Console Section -->
+        <section id="console-wrapper" style="margin-top: 2rem; background: #000; border: 1px solid var(--neon-blue); padding: 1rem; border-radius: 10px; font-family: monospace; height: 200px; overflow-y: auto; color: var(--neon-green); opacity: 0.8;">
+            <div id="console-output">
+                <div>[SYSTEM] Connecting to Nexus Core...</div>
+            </div>
+        </section>
+
+        <footer id="footer">
+            &copy; 2026 WEBTRACON. All Rights Reserved. <br>
+            <span style="color: var(--neon-red);">nexus</span> 
+            <span style="color: var(--neon-green);">loop</span> 
+            <span style="color: var(--neon-blue);">system</span>
+        </footer>
+
+    </section>
+
+    <script type="module">
+        import $ from 'https://cdn.skypack.dev/jquery';
+
+        // --- Configuration ---
+        const API_ENDPOINT = '/api/interact';
+        const SSE_ENDPOINT = '/events';
+        
+        // --- UI Logic Scope ---
+        $(function() {
+            console.log("[WEBTRACON] System Ready. jQuery v" + $.fn.jquery);
+
+            // 1. Console / SSE Handling
+            const $consoleOutput = $('#console-output');
+            const evtSource = new EventSource(SSE_ENDPOINT);
+            
+            // Map to track active lines for streaming agents
+            const activeStreams = {};
+
+            evtSource.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                
+                if (data.type === 'TOKEN_STREAM') {
+                    // Identify stream by agent
+                    const agent = data.agent;
+                    
+                    if (!activeStreams[agent]) {
+                        // Create new line if not exists
+                        const $line = $('<div>').addClass('console-line');
+                        $line.html(`<span style="color: var(--neon-blue)">[${agent}]</span> <span style="color: #ccc" class="stream-content"></span>`);
+                        $consoleOutput.append($line);
+                        activeStreams[agent] = $line.find('.stream-content');
+                        
+                        // Auto-scroll on new line
+                        $consoleOutput.scrollTop($consoleOutput[0].scrollHeight);
+                    }
+                    
+                    // Append token
+                    // Replace newlines with <br> for HTML display if needed, or keep as text
+                    const safeToken = data.token.replace(/\n/g, '<br>');
+                    activeStreams[agent].append(safeToken);
+                    
+                    // Auto-scroll on content update
+                    $consoleOutput.scrollTop($consoleOutput[0].scrollHeight);
+                    
+                } else if (data.type === 'TOKEN_STREAM_END') {
+                    // Close the stream context
+                    if (activeStreams[data.agent]) {
+                        delete activeStreams[data.agent];
+                    }
+                    // Optional: Visual indicator that stream ended?
+                    
+                } else if (data.type === 'TOKEN_INJECTION') {
+                    // Fallback / legacy full block
+                    const $line = $('<div>').addClass('console-line').hide();
+                    $line.html(`<span style="color: var(--neon-blue)">[${data.agent}]</span> <span style="color: #ccc">${data.response}</span>`);
+                    $consoleOutput.append($line);
+                    $line.fadeIn(200);
+                    $consoleOutput.scrollTop($consoleOutput[0].scrollHeight);
+                    
+                } else if (data.type === 'USER_INTERACTION') {
+                     const $line = $('<div>').addClass('console-line').hide();
+                     $line.html(`<span style="color: var(--neon-yellow)">[USER]</span> <span style="color: var(--neon-white)">${data.response}</span>`);
+                     $consoleOutput.append($line);
+                     $line.fadeIn(200);
+                     $consoleOutput.scrollTop($consoleOutput[0].scrollHeight);
+                }
+                
+                // Buffer limit
+                if ($consoleOutput.children().length > 100) {
+                    $consoleOutput.children().first().remove();
+                }
+            };
+
+            // 2. Interaction Handlers
+            
+            // Trigger Resolution (Main Action)
+            window.triggerAction = async function() {
+                const $input = $('#ai-prompt');
+                const val = $input.val().trim();
+                if (!val) return;
+
+                const $btn = $('.action-btn');
+                const originalText = $btn.text();
+
+                // UI Feedback
+                $btn.text("TRANSMITTING...").css('box-shadow', '0 0 25px var(--neon-white)');
+                
+                try {
+                    // Node-like AJAX injection
+                    await $.ajax({
+                        url: API_ENDPOINT,
+                        method: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify({
+                            prompt: val,
+                            mode: 'resolve',
+                            source: 'webtracon-ui'
+                        })
+                    });
+                    
+                    // Success State
+                    $input.val('');
+                    showToast(`Transmission Successful: ${val.substring(0, 20)}...`);
+
+                } catch (err) {
+                    console.error("Interaction Failed:", err);
+                    showToast("Error: Transmission Failed", true);
+                } finally {
+                    // Reset UI
+                    setTimeout(() => {
+                        $btn.text(originalText).css('box-shadow', '');
+                    }, 800);
+                }
+            };
+
+            // Input Enter Key
+            $('#ai-prompt').on('keypress', function(e) {
+                if (e.key === 'Enter') triggerAction();
+            });
+
+            // Service Cards Interaction
+            $('.service-card').on('click', function() {
+                const mode = $(this).data('mode');
+                const title = $(this).find('.service-title').text();
+                
+                // Animation
+                $(this).addClass('active-card');
+                setTimeout(() => $(this).removeClass('active-card'), 300);
+
+                // Set input context
+                const $input = $('#ai-prompt');
+                const currentVal = $input.val();
+                
+                // If input is empty or just a tag, replace it. Otherwise append.
+                if (currentVal.startsWith('[') && currentVal.indexOf(']') > -1 && currentVal.length < 20) {
+                     $input.val(`[${title.toUpperCase()}] `);
+                } else {
+                     $input.val(`[${title.toUpperCase()}] `);
+                }
+                
+                $input.focus();
+                showToast(`Mode switched to: ${title}`);
+            });
+
+            // 3. Health Check
+            async function checkHealth() {
+                try {
+                     const res = await fetch('/api/nexus/health');
+                     const data = await res.json();
+                     const $line = $('<div>').addClass('console-line');
+                     if (data.healthy) {
+                         $line.html(`<span style="color: var(--neon-green)">[SYSTEM] Nexus Core Online. Checks: ${data.checks ? Object.keys(data.checks).length : 'OK'}</span>`);
+                     } else {
+                         $line.html(`<span style="color: var(--neon-red)">[SYSTEM] Nexus Core Unhealthy: ${JSON.stringify(data)}</span>`);
+                     }
+                     $('#console-output').append($line);
+                } catch (e) {
+                     const $line = $('<div>').addClass('console-line');
+                     $line.html(`<span style="color: var(--neon-red)">[SYSTEM] Nexus Core Unreachable</span>`);
+                     $('#console-output').append($line);
+                }
+            }
+            checkHealth();
+
+            // --- Helper Functions ---
+            function showToast(msg, isError = false) {
+                // Quick dynamic DOM injection for toast
+                const $toast = $('<div>')
+                    .text(msg)
+                    .css({
+                        position: 'fixed',
+                        bottom: '20px',
+                        right: '20px',
+                        background: isError ? 'rgba(255, 0, 85, 0.9)' : 'rgba(0, 255, 153, 0.9)',
+                        color: '#000',
+                        padding: '1rem 2rem',
+                        borderRadius: '30px',
+                        fontWeight: 'bold',
+                        zIndex: 1000,
+                        boxShadow: '0 0 20px rgba(0,0,0,0.5)',
+                        opacity: 0,
+                        transform: 'translateY(20px)'
+                    })
+                    .appendTo('body');
+
+                $toast.animate({ opacity: 1, transform: 'translateY(0)' }, 300)
+                      .delay(2000)
+                      .animate({ opacity: 0, transform: 'translateY(20px)' }, 300, function() {
+                          $(this).remove();
+                      });
+            }
+        });
+    </script>
+
+</body>
+</html>

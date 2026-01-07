@@ -1,0 +1,12 @@
+CREATE TABLE memory (
+  id INTEGER PRIMARY KEY,
+  genesis TEXT,
+  agent TEXT,
+  phase INTEGER,
+  hash TEXT,
+  content TEXT,
+  ts INTEGER
+);
+
+CREATE INDEX idx_lookup ON memory(genesis, agent, phase, ts);
+

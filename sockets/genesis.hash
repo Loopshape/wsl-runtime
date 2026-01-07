@@ -1,0 +1,7 @@
+GENESIS = sha256(
+  boot_timestamp +
+  hostname +
+  runlevel_pid +
+  entropy_seed
+)
+

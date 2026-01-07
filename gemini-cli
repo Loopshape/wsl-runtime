@@ -1,0 +1,11 @@
+#!/bin/bash
+
+# Folder to scan
+FOLDER="./"
+
+# Exclude directories listed in .gitignore and .node_modules
+EXCLUDE="--exclude .node_modules --exclude .gitignore"
+
+# Run gemini-cli to scan all files
+gemini scan $FOLDER $EXCLUDE
+

@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WSL Runtime - Entropic AI Orchestration System</title>
+    <style>
+        :root {
+            --pi: 3.14159;
+            --agent-colors: [
+                '#FF6B6B', '#4ECDC4', '#FFD166', '#06D6A0',
+                '#118AB2', '#073B4C', '#EF476F', '#7209B7'
+            ];
+            --primary-bg: #0f172a;
+            --secondary-bg: #1e293b;
+            --accent: #3b82f6;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            overflow-x: hidden;
+			zoom: 0.9;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #334155;
+            margin-bottom: 30px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(45deg, var(--accent), #8b5cf6);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .system-status {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .status-card {
+            background: var(--secondary-bg);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid #334155;
+            transition: transform 0.3s ease;
+        }
+        
+        .status-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent);
+        }
+        
+        .status-card h3 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            color: #94a3b8;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .status-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #f8fafc;
+        }
+        
+        .entropic-cycle {
+            display: grid;
+            place-items: center;
+            margin: 40px 0;
+            position: relative;
+            height: 400px;
+        }
+        
+        .cycle-ring {
+            width: 300px;
+            height: 300px;
+            border: 2px dashed #475569;
+            border-radius: 50%;
+            position: relative;
+            animation: rotate 60s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .agent-node {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: var(--agent-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            transform-origin: center;
+            border: 2px solid white;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .agent-node:hover {
+            transform: scale(1.3);
+            z-index: 10;
+        }
+        
+        .central-hub {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+            border-radius: 50%;
+            position: absolute;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 10px 40px rgba(59, 130, 246, 0.5);
+            animation: glow 3s infinite alternate;
+        }
+        
+        @keyframes glow {
+            from { box-shadow: 0 10px 40px rgba(59, 130, 246, 0.5); }
+            to { box-shadow: 0 10px 60px rgba(59, 130, 246, 0.8); }
+        }
+        
+        .agent-console {
+            background: var(--secondary-bg);
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 30px;
+            border: 1px solid #334155;
+        }
+        
+        .console-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .console-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 8px 20px;
+            background: #475569;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .tab.active {
+            background: var(--accent);
+            color: white;
+        }
+        
+        .prompt-input {
+            width: 100%;
+            background: #0f172a;
+            border: 1px solid #475569;
+            border-radius: 8px;
+            padding: 15px;
+            color: #e2e8f0;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 100px;
+            margin-bottom: 15px;
+        }
+        
+        .prompt-input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+        
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #475569;
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .agent-responses {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 25px;
+        }
+        
+        .agent-response {
+            background: #1e293b;
+            border-radius: 8px;
+            padding: 15px;
+            border-left: 4px solid var(--agent-color);
+        }
+        
+        .agent-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .agent-badge {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--agent-color);
+        }
+        
+        .memory-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-item {
+            background: var(--secondary-bg);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: var(--accent);
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .system-status {
+                grid-template-columns: 1fr;
+            }
+            
+            .memory-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">π</div>
+                <div>
+                    <h1>WSL Runtime v2.0</h1>
+                    <p>Entropic AI Orchestration System | 2π/8-Agent Architecture</p>
+                </div>
+            </div>
+            <div class="system-time" id="systemTime">
+                Loading...
+            </div>
+        </header>
+        
+        <div class="system-status">
+            <div class="status-card">
+                <h3>🏗️ System State</h3>
+                <div class="status-value" id="systemState">Initializing</div>
+            </div>
+            <div class="status-card">
+                <h3>🧠 Active Agents</h3>
+                <div class="status-value" id="activeAgents">0/8</div>
+            </div>
+            <div class="status-card">
+                <h3>📊 SQLite Memory</h3>
+                <div class="status-value" id="memoryUsage">0 KB</div>
+            </div>
+            <div class="status-card">
+                <h3>⚡ Ollama Status</h3>
+                <div class="status-value" id="ollamaStatus">Checking...</div>
+            </div>
+        </div>
+        
+        <div class="entropic-cycle">
+            <div class="cycle-ring" id="cycleRing">
+                <!-- Agent nodes will be generated here -->
+            </div>
+            <div class="central-hub" id="centralHub">
+                OLLAMA<br>CORE
+            </div>
+        </div>
+        
+        <div class="agent-console">
+            <div class="console-header">
+                <h2>AI Orchestration Console</h2>
+                <div class="system-info" id="systemInfo">
+                    WSL1 Debian | 8GB RAM | 500GB HDD
+                </div>
+            </div>
+            
+            <div class="console-tabs">
+                <div class="tab active" data-tab="prompt">Prompt Execution</div>
+                <div class="tab" data-tab="memory">Memory Recall</div>
+                <div class="tab" data-tab="agents">Agent Control</div>
+                <div class="tab" data-tab="config">Configuration</div>
+            </div>
+            
+            <div class="tab-content active" id="promptTab">
+                <textarea class="prompt-input" id="promptInput" 
+                          placeholder="Enter your prompt for parallel AI reasoning..."></textarea>
+                <div class="button-group">
+                    <button class="btn btn-primary" onclick="executePrompt()">
+                        🚀 Execute Parallel Reasoning
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearPrompt()">
+                        Clear
+                    </button>
+                </div>
+                
+                <div class="agent-responses" id="agentResponses">
+                    <!-- Agent responses will appear here -->
+                </div>
+            </div>
+            
+            <div class="tab-content" id="memoryTab" style="display: none;">
+                <div class="memory-interface">
+                    <input type="text" class="prompt-input" id="memoryQuery" 
+                           placeholder="Search memory database...">
+                    <button class="btn btn-primary" onclick="searchMemory()">
+                        Search SQLite
+                    </button>
+                    <div id="memoryResults" style="margin-top: 20px;"></div>
+                </div>
+            </div>
+            
+            <div class="memory-stats">
+                <div class="stat-item">
+                    <div class="stat-value" id="totalMemories">0</div>
+                    <div class="stat-label">Total Memories</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="activeConnections">0</div>
+                    <div class="stat-label">Active Connections</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="tokensUsed">0</div>
+                    <div class="stat-label">Tokens Used</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="cyclePhase">0π</div>
+                    <div class="stat-label">Entropic Phase</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Constants for 2π/8 agent system
+        const AGENT_COUNT = 8;
+        const AGENT_COLORS = [
+            '#FF6B6B', '#4ECDC4', '#FFD166', '#06D6A0',
+            '#118AB2', '#073B4C', '#EF476F', '#7209B7'
+        ];
+        const AGENT_NAMES = [
+            'Analyzer π/4', 'Reasoner π/2', 'Synthesizer 3π/4', 'Validator π',
+            'Optimizer 5π/4', 'Integrator 3π/2', 'Innovator 7π/4', 'Coordinator 2π'
+        ];
+        
+        let currentCycle = 0;
+        let agents = [];
+        
+        // Initialize the system
+        function initSystem() {
+            updateSystemTime();
+            createAgentNodes();
+            loadSystemStatus();
+            
+            // Set up tab switching
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    switchTab(tab.dataset.tab);
+                });
+            });
+            
+            // Set up periodic updates
+            setInterval(updateSystemTime, 1000);
+            setInterval(updateSystemStatus, 5000);
+            setInterval(rotateCycle, 3000);
+        }
+        
+        function updateSystemTime() {
+            const now = new Date();
+            document.getElementById('systemTime').textContent = 
+                `${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+        }
+        
+        function createAgentNodes() {
+            const ring = document.getElementById('cycleRing');
+            const radius = 140;
+            
+            for (let i = 0; i < AGENT_COUNT; i++) {
+                const angle = (2 * Math.PI / AGENT_COUNT) * i;
+                const x = radius * Math.cos(angle) + 150;
+                const y = radius * Math.sin(angle) + 150;
+                
+                const agent = {
+                    id: i,
+                    name: AGENT_NAMES[i],
+                    color: AGENT_COLORS[i],
+                    angle: angle,
+                    active: false,
+                    x: x,
+                    y: y
+                };
+                
+                agents.push(agent);
+                
+                const node = document.createElement('div');
+                node.className = 'agent-node';
+                node.id = `agent-${i}`;
+                node.style.left = `${x}px`;
+                node.style.top = `${y}px`;
+                node.style.backgroundColor = agent.color;
+                node.style.transform = `rotate(${angle}rad)`;
+                node.textContent = i + 1;
+                node.title = agent.name;
+                
+                node.addEventListener('click', () => selectAgent(i));
+                ring.appendChild(node);
+            }
+        }
+        
+        function rotateCycle() {
+            currentCycle = (currentCycle + 1) % AGENT_COUNT;
+            const phase = (2 * Math.PI / AGENT_COUNT) * currentCycle;
+            document.getElementById('cyclePhase').textContent = 
+                `${(phase / Math.PI).toFixed(2)}π`;
+            
+            agents.forEach((agent, i) => {
+                const node = document.getElementById(`agent-${i}`);
+                const newAngle = agent.angle + (Math.PI / 180);
+                node.style.transform = `rotate(${newAngle}rad)`;
+            });
+        }
+        
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.style.display = 'none';
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(`${tabName}Tab`).style.display = 'block';
+            
+            // Activate selected tab
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+        }
+        
+        async function executePrompt() {
+            const prompt = document.getElementById('promptInput').value;
+            if (!prompt.trim()) {
+                alert('Please enter a prompt');
+                return;
+            }
+            
+            // Show loading state
+            const responseArea = document.getElementById('agentResponses');
+            responseArea.innerHTML = '<div style="text-align: center; padding: 20px; color: #94a3b8;">Processing parallel reasoning...</div>';
+            
+            // Activate agents
+            agents.forEach((agent, i) => {
+                const node = document.getElementById(`agent-${i}`);
+                agent.active = true;
+                node.style.boxShadow = `0 0 20px ${agent.color}`;
+            });
+            
+            document.getElementById('activeAgents').textContent = `${AGENT_COUNT}/${AGENT_COUNT}`;
+            
+            try {
+                // Call the bash API
+                const response = await fetchAIResponse(prompt);
+                
+                // Display agent responses
+                displayAgentResponses(response);
+                
+                // Update memory stats
+                updateMemoryStats();
+                
+            } catch (error) {
+                console.error('Error:', error);
+                responseArea.innerHTML = `<div style="color: #ef4444;">Error: ${error.message}</div>`;
+            }
+            
+            // Deactivate agents after delay
+            setTimeout(() => {
+                agents.forEach((agent, i) => {
+                    const node = document.getElementById(`agent-${i}`);
+                    agent.active = false;
+                    node.style.boxShadow = 'none';
+                });
+                document.getElementById('activeAgents').textContent = `0/${AGENT_COUNT}`;
+            }, 3000);
+        }
+        
+        async function fetchAIResponse(prompt) {
+            // This would call your bash API endpoint
+            // For now, simulate responses
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    const responses = agents.map((agent, i) => ({
+                        agent: agent.name,
+                        color: agent.color,
+                        response: `Agent ${i + 1} (${agent.name}): Processed "${prompt.substring(0, 20)}..." with angle ${(agent.angle / Math.PI).toFixed(2)}π`,
+                        confidence: (Math.random() * 100).toFixed(1)
+                    }));
+                    resolve(responses);
+                }, 2000);
+            });
+        }
+        
+        function displayAgentResponses(responses) {
+            const container = document.getElementById('agentResponses');
+            container.innerHTML = '';
+            
+            responses.forEach(resp => {
+                const div = document.createElement('div');
+                div.className = 'agent-response';
+                div.style.borderLeftColor = resp.color;
+                div.innerHTML = `
+                    <div class="agent-header">
+                        <div class="agent-badge" style="background: ${resp.color}"></div>
+                        <strong>${resp.agent}</strong>
+                        <span style="margin-left: auto; font-size: 12px; color: #94a3b8;">
+                            ${resp.confidence}% confidence
+                        </span>
+                    </div>
+                    <div style="margin-top: 8px; font-size: 14px;">
+                        ${resp.response}
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+        
+        function clearPrompt() {
+            document.getElementById('promptInput').value = '';
+            document.getElementById('agentResponses').innerHTML = '';
+        }
+        
+        function selectAgent(agentId) {
+            const agent = agents[agentId];
+            alert(`Selected: ${agent.name}\nPosition: ${(agent.angle / Math.PI).toFixed(2)}π\nActive: ${agent.active ? 'Yes' : 'No'}`);
+        }
+        
+        function loadSystemStatus() {
+            // Simulated system status
+            document.getElementById('memoryUsage').textContent = 
+                `${(Math.random() * 1024).toFixed(1)} MB`;
+            document.getElementById('ollamaStatus').textContent = 'Running';
+            document.getElementById('systemState').textContent = 'Operational';
+            
+            // Update stats
+            document.getElementById('totalMemories').textContent = 
+                Math.floor(Math.random() * 1000);
+            document.getElementById('activeConnections').textContent = 
+                Math.floor(Math.random() * 50);
+            document.getElementById('tokensUsed').textContent = 
+                Math.floor(Math.random() * 1000000).toLocaleString();
+        }
+        
+        function updateSystemStatus() {
+            loadSystemStatus();
+        }
+        
+        function searchMemory() {
+            const query = document.getElementById('memoryQuery').value;
+            const resultsDiv = document.getElementById('memoryResults');
+            resultsDiv.innerHTML = `<div style="color: #94a3b8;">Searching SQLite for: "${query}"...</div>`;
+            
+            // Simulate search
+            setTimeout(() => {
+                resultsDiv.innerHTML = `
+                    <div style="background: #0f172a; padding: 15px; border-radius: 8px;">
+                        <div style="color: var(--accent); margin-bottom: 10px;">Found 3 memories:</div>
+                        <div style="font-size: 14px; line-height: 1.6;">
+                            1. ${query} - processed at ${new Date().toLocaleTimeString()}<br>
+                            2. Related to ${query} - confidence 87%<br>
+                            3. Memory cluster for ${query} - 245 tokens
+                        </div>
+                    </div>
+                `;
+            }, 1000);
+        }
+        
+        function updateMemoryStats() {
+            // Update statistics after operations
+            document.getElementById('totalMemories').textContent = 
+                parseInt(document.getElementById('totalMemories').textContent) + 1;
+            document.getElementById('tokensUsed').textContent = 
+                (parseInt(document.getElementById('tokensUsed').textContent.replace(/,/g, '')) + 1500).toLocaleString();
+        }
+        
+        // Initialize when page loads
+        window.addEventListener('DOMContentLoaded', initSystem);
+    </script>
+</body>
+</html>

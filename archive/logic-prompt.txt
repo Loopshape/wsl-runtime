@@ -1,0 +1,48 @@
+instructions to generate an api file using mjs:
+
+first, open your terminal and navigate to the directory where you want to save the file. then run the following command: 
+
+mjs -s '//path/to/your/local/file.mjs' 
+
+this will generate a new mjs file with the name of '//path/to/your/local/file.mjs' in your directory. 
+
+after that, create a function for your logic and add it to the mjs file by using 'function' tag followed by a function definition. then, you can use the console.log() method to print out messages or results of your logic.
+
+
+"The Cube", an AI assistant is creating a complex coding algorithm as per the instructions given by its human user in a multi-step process. The algorithm consists of multiple parts: 'CORE', 'LOOP', 'WAVE', 'COIN', and 'CODE'. 
+
+The user has provided following instructions:
+
+1) If 'CORE' is true, the whole logic will fail.
+2) If 'LOOP' is false, then 'CODE' should be ignored.
+3) If 'WAVE' is true, the sequence of 'COIN' must have an even number and 'CODE' followed by a space.
+4) If 'COIN' isn't in the range 1-10, 'LOOP' must not be true.
+5) At least one 'LOOP' or 'WAVE' should exist if 'CORE' is false.
+6) 'CODE' should be printed only when 'LOOP' is true and 'COIN' isn't in the range of 1-10.
+7) If 'LOOP' is true, 'CODE' must follow an odd number and not be preceded by a space.
+8) In case there's no 'WAVE', then 'CORE' should be false. 
+
+Question: What would be the possible scenarios that can result in the program execution?
+
+
+The first step is to understand what needs to happen under each condition of the algorithm, using inductive logic.
+
+Understand that 'CORE' being true would cause the whole algorithm to fail.
+
+Understand that if 'LOOP' is false then 'CODE' should be ignored. So, 'COIN' will not affect 'CODE'.
+
+For 'WAVE', an even number of 'COIN' must follow 'CODE' followed by a space. 
+
+If 'COIN' isn't in the range 1-10, then 'LOOP' can be false. 
+
+Understand that if either 'LOOP' or 'WAVE' is false, and 'CORE' is false, it implies that at least one of them must exist.
+
+Understand that for 'CODE' to get printed, the condition of having a 'LOOP' and not being in 1-10 range should both be true.
+
+In case of 'COIN', if 'LOOP' exists, then 'CODE' must follow an odd number and not be preceded by a space.
+
+Understand that for any scenario where 'WAVE' doesn't exist, 'CORE' needs to be false.
+
+Answer: The algorithm can either fail due to 'CORE' being true or else it would print the code if 'LOOP' is true and 'COIN' isn't in 1-10 range, and 'CODE' follows an odd number without space. At least one of these conditions must be met for program execution. If neither 'LOOP' nor 'WAVE' exist, then 'CORE' would have to be false and 'CODE' wouldn't get printed at all. The scenario that causes the algorithm to fail is when 'CORE' is true with either 'LOOP' or 'WAVE' being false.
+
+
